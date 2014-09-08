@@ -1,0 +1,8 @@
+Set of utilities
+
+a2newsite.sh
+-------------------
+Simple interactive script to quickly add a new virtual host to Apache.
+
+Tested on Ubuntu 14.04/LAMP.
+	
