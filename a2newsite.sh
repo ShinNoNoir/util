@@ -19,9 +19,15 @@ function prompt_params() {
 		read -p "ServerAdmin: " SERVER_ADMIN
 		
 		DEFAULT_PATH="/var/www/$SERVER_NAME"
-		read -p "DocumentRoot ($DEFAULT_PATH): " DOCUMENT_ROOT
-		DOCUMENT_ROOT=${DOCUMENT_ROOT:-$DEFAULT_PATH}
+		read -p "DocumentRoot base ($DEFAULT_PATH): " DOCUMENT_ROOT_BASE
+		DOCUMENT_ROOT_BASE=${DOCUMENT_ROOT_BASE:-$DEFAULT_PATH}
 		
+		DEFAULT_PATH="public_html"
+		read -p "DocumentRoot public_html ($DEFAULT_PATH): " DOCUMENT_ROOT_PUB
+		DOCUMENT_ROOT_PUB=${DOCUMENT_ROOT_PUB:-$DEFAULT_PATH}
+		
+		DOCUMENT_ROOT="${DOCUMENT_ROOT_BASE%%/}/$DOCUMENT_ROOT_PUB"
+
 		DEFAULT_CONF="${SERVER_NAME}.conf"
 		read -p ".conf file ($DEFAULT_CONF): " CONF
 		CONF_FNAME=${CONF:-$DEFAULT_CONF}
@@ -56,20 +62,20 @@ DOCUMENT_ROOT_ESC=$(sed -e 's/[\/&]/\\&/g' <<< $DOCUMENT_ROOT)
 sudo cat $CONF_TEMPLATE \
  | sed "s/\(\t#ServerName\)\(.*\)/\1 \2\n\tServerName $SERVER_NAME_ESC/" \
  | sed "s/\tServerAdmin .*/\tServerAdmin $SERVER_ADMIN_ESC/" \
- | sed "s:\tDocumentRoot .*:\tDocumentRoot $DOCUMENT_ROOT_ESC/public_html:" \
+ | sed "s:\tDocumentRoot .*:\tDocumentRoot $DOCUMENT_ROOT_ESC:" \
  > "/tmp/$CONF_FNAME"
 sudo mv "/tmp/$CONF_FNAME" $CONF
 
-echo "Creating DocumentRoot... $DOCUMENT_ROOT/public_html"
-sudo mkdir -p $DOCUMENT_ROOT/public_html
+echo "Creating DocumentRoot... $DOCUMENT_ROOT"
+sudo mkdir -p $DOCUMENT_ROOT
 
-echo "CHOWNing DocumentRoot/public_html to user ${USER}..."
-sudo chown -R $USER:$USER $DOCUMENT_ROOT/public_html 
-echo "CHMODding DocumentRoot to 755..."
-sudo chmod 755 $DOCUMENT_ROOT
+echo "CHOWNing DocumentRoot to user ${USER}..."
+sudo chown -R $USER:$USER $DOCUMENT_ROOT 
+echo "CHMODding DocumentRoot's base to 755... $DOCUMENT_ROOT_BASE"
+sudo chmod 755 $DOCUMENT_ROOT_BASE
 
 echo "Creating default test page..."
-echo '<?php phpinfo(); ?>' > ${DOCUMENT_ROOT}/public_html/index.php
+echo '<?php phpinfo(); ?>' > ${DOCUMENT_ROOT%%/}/index.php
 
 echo "Enabling server ${SERVER_NAME}..."
 sudo a2ensite $SERVER_NAME
