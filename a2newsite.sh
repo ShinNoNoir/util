@@ -28,6 +28,13 @@ function prompt_params() {
 		
 		DOCUMENT_ROOT="${DOCUMENT_ROOT_BASE%%/}/$DOCUMENT_ROOT_PUB"
 
+		if [[ "yes" == $(confirm "AllowOverride all?") ]]
+		then
+			OVERRIDE_ALL="Y"
+		else
+			OVERRIDE_ALL="N"
+		fi
+		
 		DEFAULT_CONF="${SERVER_NAME}.conf"
 		read -p ".conf file ($DEFAULT_CONF): " CONF
 		CONF_FNAME=${CONF:-$DEFAULT_CONF}
@@ -37,10 +44,11 @@ function prompt_params() {
 		unset DEFAULT_CONF
 	
 		echo -e "\nNew site's settings:"
-		echo -e "\tServerName:    $SERVER_NAME"
-		echo -e "\tServerAdmin:   $SERVER_ADMIN"
-		echo -e "\tDocumentRoot:  $DOCUMENT_ROOT"
-		echo -e "\t.conf file:    $CONF"
+		echo -e "\tServerName:         $SERVER_NAME"
+		echo -e "\tServerAdmin:        $SERVER_ADMIN"
+		echo -e "\tDocumentRoot:       $DOCUMENT_ROOT"
+		echo -e "\tAllowOverride all:  $OVERRIDE_ALL"
+		echo -e "\t.conf file:         $CONF"
 		
 		if [[ "yes" == $(confirm "Is this OK?") ]]
 		then
@@ -59,10 +67,22 @@ SERVER_NAME_ESC=$(sed -e 's/[\/&]/\\&/g' <<< $SERVER_NAME)
 SERVER_ADMIN_ESC=$(sed -e 's/[\/&]/\\&/g' <<< $SERVER_ADMIN)
 DOCUMENT_ROOT_ESC=$(sed -e 's/[\/&]/\\&/g' <<< $DOCUMENT_ROOT)
 
+if [[ "Y" == $OVERRIDE_ALL ]]
+then
+	DIR_OPT="\
+	\n\t<Directory "$DOCUMENT_ROOT_ESC">\
+	\n\t\tAllowOverride all\
+	\n\t</Directory>\
+	\n"
+else
+	DIR_OPT=""
+fi
+
+
 sudo cat $CONF_TEMPLATE \
  | sed "s/\(\t#ServerName\)\(.*\)/\1 \2\n\tServerName $SERVER_NAME_ESC/" \
  | sed "s/\tServerAdmin .*/\tServerAdmin $SERVER_ADMIN_ESC/" \
- | sed "s:\tDocumentRoot .*:\tDocumentRoot $DOCUMENT_ROOT_ESC:" \
+ | sed "s:\tDocumentRoot .*:\tDocumentRoot $DOCUMENT_ROOT_ESC$DIR_OPT:" \
  > "/tmp/$CONF_FNAME"
 sudo mv "/tmp/$CONF_FNAME" $CONF
 
